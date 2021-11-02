@@ -1,4 +1,3 @@
-import numpy as np
 import agama
 agama.setUnits(mass=1., length=1., velocity=1.)  # Msun, kpc, km/s
 # Units 1 Msun, 1 Kpc, 1 km/s
@@ -32,7 +31,7 @@ zd_H2 = 0.045  # kpc
 Sigma0_H2 = 2200 * (1e6)
 # Cautun CGM
 A = 0.19
-Beta = -1.46
+Beta = 1.46
 critz0 = 127.5e-9
 R200 = 219  # kpc
 cgm_amp = 200 * critz0 * A * fb
@@ -75,15 +74,14 @@ bulge_pot = agama.Potential(type="Spheroid",
                             outerCutoffRadius=rcut_bulge)
 
 
-def cgm_dens(xyz):
-    r = np.linalg.norm(xyz, axis=1)
-    dens_cgm = 200 * critz0 * A * fb * (r / R200)**Beta
-    rc = 2 * R200
-    dens_cgm *= np.exp(-(r / rc)**2)
-    return dens_cgm * (1e9)
+cgm_pot = agama.Potential(type="Spheroid",
+    densityNorm = 7.615e2,
+    gamma = Beta,
+    beta = Beta,
+    scaleRadius = R200,
+    cutoffStrength = 2,
+    outerCutoffRadius = 2*R200)
 
-
-cgm_pot = agama.Potential(type="Multipole", density=cgm_dens)
 
 disc_pot = agama.Potential(thin_disc_pot, thick_disc_pot, HI_disc_pot, H2_disc_pot)
 C20_Baryon_pot = agama.Potential(disc_pot, bulge_pot, cgm_pot)
@@ -100,4 +98,6 @@ except Exception:
     C20_contracted_pot.export(data_file)
     print('Saved!')
 
-C20_pot = agama.Potential(C20_contracted_pot, disc_pot, bulge_pot, cgm_pot)
+# C20_pot = agama.Potential(C20_contracted_pot, disc_pot, bulge_pot, cgm_pot) #More convenient split
+C20_pot = agama.Potential(thin_disc_pot, thick_disc_pot, HI_disc_pot, H2_disc_pot, 
+                          bulge_pot, cgm_pot, C20_contracted_pot)

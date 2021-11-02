@@ -27,7 +27,7 @@ def contract_agama_potential(dm_pot, baryon_pot, fbar=0.157,rmax=500, rmin=0.1):
                                      symmetry="spherical", rmin=1e-3, rmax=1e3)
     return contracted_pot
 
-### Functions below lifted from Cautun Github
+### Functions below lifted from Cautun Github and adapted with minumum change
 def contract_density_fit( density_DM, density_bar, mass_DM, mass_bar, f_bar=0.157 ):
     """ Returns the contracted DM density profile given the 'uncontracted' density and that of the baryonic distribution.
     It uses the differential (d/dr) form of Eq. (11) from Cautun et al (2020).

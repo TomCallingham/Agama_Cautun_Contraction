@@ -1,6 +1,6 @@
 import numpy as np
 import agama
-from scipy import integrate
+from scipy import integrate, optimize
 agama.setUnits( mass=1., length=1., velocity=1.)  # Msun, kpc, km/s
 
 def contract_agama_potential(dm_pot, baryon_pot, fbar=0.157,rmax=500, rmin=0.1):
@@ -16,12 +16,20 @@ def contract_agama_potential(dm_pot, baryon_pot, fbar=0.157,rmax=500, rmin=0.1):
     except Exception: # Assume Old agama, no totalMass 
         Mcum_dm = Mcum_from_sph_dens(r_space, dm_pot.density)
         Mcum_bar = Mcum_from_axi_dens(r_space, baryon_pot.density)
-        
-    dens_bar = density_from_enclosed_mass(r_space,Mcum_bar,r_space) #note spherical average
-    dens_contracted = contract_density_fit(dens_dm,dens_bar,Mcum_dm,Mcum_bar,fbar)
+
+    if fbar == 0.157:
+        dens_bar = density_from_enclosed_mass(r_space,Mcum_bar,r_space) #note spherical average
+        dens_contracted = contract_density_fit(dens_dm,dens_bar,Mcum_dm,Mcum_bar,fbar)
+    else:
+        Mcum_contracted = contract_enclosed_mass(Mcum_dm, Mcum_bar,fbar)
+        dens_contracted = density_from_enclosed_mass(r_space,Mcum_contracted,r_space)
+    # create a cubic spline interpolator in log-log space
+    dens_contracted_interp = agama.CubicSpline(np.log(r_space), np.log(dens_contracted), reg=True)
+
     def contracted_dens_func(xyz):
-        r = np.linalg.norm(xyz,axis=1)
-        return np.interp(r, r_space, dens_contracted)
+        return np.exp(dens_contracted_interp(np.log(np.sum(xyz**2, axis=1))*0.5))
+    contracted_pot = agama.Potential(type="Multipole", density=contracted_dens_func,
+         symmetry="spherical", rmin=rmin, rmax=rmax)
 
     contracted_pot = agama.Potential(type="Multipole", density=contracted_dens_func,
                                      symmetry="spherical", rmin=1e-3, rmax=1e3)
@@ -55,6 +63,22 @@ def contract_density_fit( density_DM, density_bar, mass_DM, mass_bar, f_bar=0.15
     const_term   = 0.41 * 0.53 * (eta_bar + 0.98)**(0.53-1.) * (1.-f_bar) / f_bar * temp
     
     return density_DM * first_factor + const_term
+
+def contract_enclosed_mass( mass_DM, mass_bar, f_bar=0.157 ):
+    """ Returns the contracted DM enclosed mass given the 'uncontracted' profile and that of the baryonic distribution.
+    It uses Eq. (10) from Cautun et al (2020).
+   
+   Args:
+      mass_DM       : enclosed mass in the DM component in the absence of baryons. 
+                          It corresponds to '(1-baryon_fraction) * enclosed mass in
+                          DMO (dark matter only) simulations'.
+      mass_bar      : enclosed baryonic mass for which to calculate the DM profile.
+      f_bar         : optional cosmic baryonic fraction.
+   Returns:
+      Array of 'contracted' enclosed masses.
+   """
+    func_M_DM_contract = lambda M, M_DMO, M_bar: 1.023 * (M_DMO/(1.-f_bar)/(M+M_bar))**-0.540 * M_DMO
+    return optimize.fixed_point( func_M_DM_contract, mass_DM.copy(), args=(mass_DM,mass_bar), xtol=1.e-6 )
 
 def density_from_enclosed_mass( r_bins, enclosed_mass, out_r_bins ):
     """ Converts an array of enclosed masses to 3D densities.

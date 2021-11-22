@@ -23,11 +23,11 @@ Sigma0_thick = 101. * (1e6)
 # Cautun Gas Discs
 Rd_HI = 7.  # kpc
 Rm_HI = 4.
-zd_HI = 0.085  # kpc
+zd_HI = -0.085  # kpc
 Sigma0_HI = 53 * (1e6)
 Rd_H2 = 1.5  # kpc
 Rm_H2 = 12.
-zd_H2 = 0.045  # kpc
+zd_H2 = -0.045  # kpc
 Sigma0_H2 = 2200 * (1e6)
 # Cautun CGM
 A = 0.19
@@ -80,7 +80,7 @@ cgm_pot = agama.Potential(type="Spheroid",
     beta = Beta,
     scaleRadius = R200,
     cutoffStrength = 2,
-    outerCutoffRadius = 2*R200)
+    outerCutoffRadius = 2 *R200)
 
 
 disc_pot = agama.Potential(thin_disc_pot, thick_disc_pot, HI_disc_pot, H2_disc_pot)
@@ -98,6 +98,7 @@ except Exception:
     C20_contracted_pot.export(data_file)
     print('Saved!')
 
-# C20_pot = agama.Potential(C20_contracted_pot, disc_pot, bulge_pot, cgm_pot) #More convenient split
-C20_pot = agama.Potential(thin_disc_pot, thick_disc_pot, HI_disc_pot, H2_disc_pot, 
+# C20_pot = agama.Potential(C20_contracted_pot, disc_pot, bulge_pot,
+# cgm_pot) #More convenient split
+C20_pot = agama.Potential(thin_disc_pot, thick_disc_pot, HI_disc_pot, H2_disc_pot,
                           bulge_pot, cgm_pot, C20_contracted_pot)
